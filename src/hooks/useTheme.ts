@@ -2,8 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-export function useTheme() {
-  const [dark, setDark] = useState(false);
+interface UseThemeReturn {
+  dark: boolean;
+  toggle: () => void;
+}
+
+export function useTheme(): UseThemeReturn {
+  const [dark, setDark] = useState<boolean>(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("pasraho-theme");
@@ -17,7 +22,7 @@ export function useTheme() {
   }, []);
 
   const toggle = useCallback(() => {
-    setDark((prev) => {
+    setDark((prev: boolean) => {
       const next = !prev;
       if (next) {
         document.documentElement.classList.add("dark");

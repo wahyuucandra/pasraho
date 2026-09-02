@@ -1,6 +1,12 @@
 import { create } from "zustand";
+import type { AppState } from "../types";
 
-const ACHIEVEMENTS_DEFS = [
+interface AchievementDef {
+  id: string;
+  min: number;
+}
+
+const ACHIEVEMENTS_DEFS: AchievementDef[] = [
   { id: "first", min: 1 },
   { id: "five", min: 5 },
   { id: "ten", min: 10 },
@@ -8,14 +14,22 @@ const ACHIEVEMENTS_DEFS = [
   { id: "fifty", min: 50 },
 ];
 
-// Load persisted state
-const loadState = () => {
+interface PersistedState {
+  count?: number;
+  achievements?: string[];
+}
+
+const loadState = (): Partial<Pick<AppState, "count" | "achievementIds">> => {
   if (typeof window === "undefined") return {};
   try {
-    const saved = JSON.parse(localStorage.getItem("pasraho-state") || "{}");
+    const saved: PersistedState = JSON.parse(
+      localStorage.getItem("pasraho-state") || "{}"
+    );
     return {
       count: saved.count || 0,
-      achievementIds: saved.achievements ? new Set(saved.achievements) : new Set(),
+      achievementIds: saved.achievements
+        ? new Set(saved.achievements)
+        : new Set<string>(),
     };
   } catch {
     return {};
@@ -24,13 +38,10 @@ const loadState = () => {
 
 const initial = loadState();
 
-export const useAppStore = create((set, get) => ({
-  // Session-only: resets on refresh
+export const useAppStore = create<AppState>((set, get) => ({
   hasSmiledOnce: false,
-
-  // Persisted across refreshes
   count: initial.count || 0,
-  achievementIds: initial.achievementIds || new Set(),
+  achievementIds: initial.achievementIds || new Set<string>(),
 
   markSmiled: () => {
     if (!get().hasSmiledOnce) {
@@ -41,7 +52,7 @@ export const useAppStore = create((set, get) => ({
   incrementCount: () => {
     const { count, achievementIds } = get();
     const newCount = count + 1;
-    const newAchievements = new Set(achievementIds);
+    const newAchievements = new Set<string>(achievementIds);
 
     ACHIEVEMENTS_DEFS.forEach((a) => {
       if (newCount >= a.min) newAchievements.add(a.id);
@@ -52,7 +63,6 @@ export const useAppStore = create((set, get) => ({
       achievementIds: newAchievements,
     });
 
-    // Persist
     if (typeof window !== "undefined") {
       localStorage.setItem(
         "pasraho-state",
@@ -60,9 +70,10 @@ export const useAppStore = create((set, get) => ({
       );
     }
 
-    // Return newly unlocked achievements
     const oldIds = achievementIds;
-    const newlyUnlocked = [...newAchievements].filter((id) => !oldIds.has(id));
+    const newlyUnlocked = [...newAchievements].filter(
+      (id: string) => !oldIds.has(id)
+    );
     return newlyUnlocked;
   },
 }));

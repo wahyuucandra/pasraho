@@ -2,29 +2,30 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import * as faceapi from "face-api.js";
+import type { CameraPermission, UseFaceDetectionReturn } from "../types";
 
-const HAPPY_THRESHOLD = 0.6; // Minimum happy confidence untuk unlock
+const HAPPY_THRESHOLD = 0.6;
 const CONFIDENCE_THRESHOLD = 0.4;
 const DETECTION_INTERVAL = 1000;
 
-export function useFaceDetection() {
-  const [faceStatus, setFaceStatus] = useState("Loading models...");
-  const [emotion, setEmotion] = useState("neutral");
-  const [isSmiling, setIsSmiling] = useState(false);
-  const [forceSmile, setForceSmile] = useState(null);
-  const [modelsLoaded, setModelsLoaded] = useState(false);
-  const [expressions, setExpressions] = useState(null);
-  const [cameraPermission, setCameraPermission] = useState("prompt"); // "granted" | "denied" | "prompt"
+export function useFaceDetection(): UseFaceDetectionReturn {
+  const [faceStatus, setFaceStatus] = useState<string>("Loading models...");
+  const [emotion, setEmotion] = useState<string>("neutral");
+  const [isSmiling, setIsSmiling] = useState<boolean>(false);
+  const [forceSmile, setForceSmile] = useState<boolean | null>(null);
+  const [modelsLoaded, setModelsLoaded] = useState<boolean>(false);
+  const [expressions, setExpressions] = useState<Record<string, number> | null>(null);
+  const [cameraPermission, setCameraPermission] = useState<CameraPermission>("prompt");
 
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const streamRef = useRef(null);
-  const intervalRef = useRef(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const effectiveSmile = forceSmile !== null ? forceSmile : isSmiling;
   const locked = !effectiveSmile;
 
-  // Load models dari /public/models
+  // Load models from /public/models
   useEffect(() => {
     const loadModels = async () => {
       try {
@@ -35,7 +36,7 @@ export function useFaceDetection() {
         ]);
         setModelsLoaded(true);
         setFaceStatus("Mendeteksi wajah...");
-      } catch (error) {
+      } catch {
         setFaceStatus("Error loading AI models");
       }
     };
@@ -48,36 +49,38 @@ export function useFaceDetection() {
 
     try {
       const detection = await faceapi
-        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({
-          inputSize: 320,
-          scoreThreshold: CONFIDENCE_THRESHOLD,
-        }))
+        .detectSingleFace(
+          video,
+          new faceapi.TinyFaceDetectorOptions({
+            inputSize: 320,
+            scoreThreshold: CONFIDENCE_THRESHOLD,
+          })
+        )
         .withFaceExpressions();
 
       if (detection) {
         const { expressions } = detection;
-        const { happy, angry, sad, neutral } = expressions;
+        const { happy } = expressions;
 
         console.log(
-          `%c[FaceAPI] ${new Date().toLocaleTimeString()}%c  Happy:${(happy * 100).toFixed(1)}%  Angry:${(angry * 100).toFixed(1)}%  Sad:${(sad * 100).toFixed(1)}%  Neutral:${(neutral * 100).toFixed(1)}%`,
-          "color:#059669;font-weight:bold", "color:#475569"
+          `%c[FaceAPI] ${new Date().toLocaleTimeString()}%c  Happy:${(happy * 100).toFixed(1)}%`,
+          "color:#059669;font-weight:bold",
+          "color:#475569"
         );
 
-        // Tentukan emosi dominan
-        let detected = "neutral";
+        // Determine dominant emotion
         const emotions = Object.entries(expressions);
         const [dominantEmotion] = emotions.reduce(
-          (max, [emotion, score]) => score > max[1] ? [emotion, score] : max,
+          (max, [emotion, score]) => (score > max[1] ? [emotion, score] : max),
           ["", 0]
         );
-        detected = dominantEmotion;
 
-        setEmotion(detected);
+        setEmotion(dominantEmotion);
         setIsSmiling(happy >= HAPPY_THRESHOLD);
-        setExpressions(expressions);
+        setExpressions({ ...expressions } as Record<string, number>);
         setFaceStatus("Face detected");
 
-        return { emotion: detected, happy: Math.round(happy * 100) };
+        return { emotion: dominantEmotion, happy: Math.round(happy * 100) };
       } else {
         setEmotion("neutral");
         setIsSmiling(false);
@@ -102,7 +105,7 @@ export function useFaceDetection() {
       }
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = setInterval(analyzeFrame, DETECTION_INTERVAL);
-    } catch (err) {
+    } catch {
       setCameraPermission("denied");
       setFaceStatus("Izin kamera diperlukan");
     }
@@ -111,20 +114,19 @@ export function useFaceDetection() {
   const stopWebcam = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       streamRef.current = null;
     }
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
-  // Cleanup only — webcam start/stop controlled externally
+  // Cleanup only
   useEffect(() => {
     return () => stopWebcam();
   }, [stopWebcam]);
 
-  // Debug: log model loading status
   useEffect(() => {
-    if (modelsLoaded) console.log('[FaceAPI] Models loaded & ready');
+    if (modelsLoaded) console.log("[FaceAPI] Models loaded & ready");
   }, [modelsLoaded]);
 
   return {

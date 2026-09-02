@@ -2,10 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 
-export function useTypewriter(text, speed = 18) {
-  const [displayed, setDisplayed] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const prevTextRef = useRef("");
+interface UseTypewriterReturn {
+  displayed: string;
+  isTyping: boolean;
+  fullText: string;
+}
+
+export function useTypewriter(text: string, speed: number = 18): UseTypewriterReturn {
+  const [displayed, setDisplayed] = useState<string>("");
+  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const prevTextRef = useRef<string>("");
 
   useEffect(() => {
     if (!text) {
@@ -14,7 +20,6 @@ export function useTypewriter(text, speed = 18) {
       return;
     }
 
-    // If text changed completely, restart
     if (text !== prevTextRef.current) {
       prevTextRef.current = text;
       setDisplayed("");
