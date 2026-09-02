@@ -13,6 +13,8 @@ export function useFaceDetection() {
   const [isSmiling, setIsSmiling] = useState(false);
   const [forceSmile, setForceSmile] = useState(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [expressions, setExpressions] = useState(null);
+  const [cameraPermission, setCameraPermission] = useState("prompt"); // "granted" | "denied" | "prompt"
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -72,12 +74,14 @@ export function useFaceDetection() {
 
         setEmotion(detected);
         setIsSmiling(happy >= HAPPY_THRESHOLD);
+        setExpressions(expressions);
         setFaceStatus("Face detected");
 
         return { emotion: detected, happy: Math.round(happy * 100) };
       } else {
         setEmotion("neutral");
         setIsSmiling(false);
+        setExpressions(null);
         setFaceStatus("No face detected");
       }
     } catch (error) {
@@ -91,13 +95,15 @@ export function useFaceDetection() {
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
       });
       streamRef.current = stream;
+      setCameraPermission("granted");
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = setInterval(analyzeFrame, DETECTION_INTERVAL);
-    } catch {
+    } catch (err) {
+      setCameraPermission("denied");
       setFaceStatus("Izin kamera diperlukan");
     }
   }, [analyzeFrame]);
@@ -111,12 +117,15 @@ export function useFaceDetection() {
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
+  // Cleanup only — webcam start/stop controlled externally
   useEffect(() => {
-    if (modelsLoaded) {
-      startWebcam();
-    }
     return () => stopWebcam();
-  }, [startWebcam, stopWebcam, modelsLoaded]);
+  }, [stopWebcam]);
+
+  // Debug: log model loading status
+  useEffect(() => {
+    if (modelsLoaded) console.log('[FaceAPI] Models loaded & ready');
+  }, [modelsLoaded]);
 
   return {
     videoRef,
@@ -127,7 +136,12 @@ export function useFaceDetection() {
     isSmiling: effectiveSmile,
     locked,
     forceSmile,
+    expressions,
     toggleForce: () => setForceSmile((p) => (p === null ? true : p ? false : null)),
     analyzeFrame,
+    modelsLoaded,
+    startWebcam,
+    stopWebcam,
+    cameraPermission,
   };
 }

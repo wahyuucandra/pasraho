@@ -28,13 +28,25 @@ const nextConfig = {
         'encoding': false,
       };
 
-      // Ignore warnings dari TensorFlow
+      // Ignore warnings dari TensorFlow & node-fetch
+      // https://github.com/node-fetch/node-fetch/issues/466
+      // Can't resolve 'encoding' in node-fetch/lib
       config.ignoreWarnings = [
         ...(config.ignoreWarnings || []),
         { module: /node-fetch/ },
         { module: /encoding/ },
         { module: /@tensorflow\/tfjs-core/ },
+        { message: /Can't resolve 'encoding'/ },
+        { message: /node-fetch/ },
       ];
+
+      // Disable critical dependency warnings dari node-fetch
+      config.plugins.push(
+        new (require('webpack')).IgnorePlugin({
+          resourceRegExp: /^encoding$/,
+          contextRegExp: /node-fetch/,
+        })
+      );
     }
     return config;
   },
