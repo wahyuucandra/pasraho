@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { LOADING_MESSAGES } from "../../constants";
 import { SparklesIcon } from "../atoms/Icon";
 
 export interface TextEditorProps {
@@ -9,7 +8,6 @@ export interface TextEditorProps {
   onChange: (value: string) => void;
   onTranslate: () => void;
   isLoading: boolean;
-  loadingMsgIndex: number;
 }
 
 /**
@@ -20,7 +18,6 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   onChange,
   onTranslate,
   isLoading,
-  loadingMsgIndex,
 }) => {
   const disabled = !value.trim() || isLoading;
 
@@ -59,12 +56,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
       >
         <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-3">
           {isLoading ? (
-            <>
-              <span className="spinner" />
-              <span className="text-sm sm:text-lg">
-                {LOADING_MESSAGES[loadingMsgIndex]}
-              </span>
-            </>
+            <span className="spinner" />
           ) : (
             <>
               <span className="text-lg sm:text-xl">✨</span>

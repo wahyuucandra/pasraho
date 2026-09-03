@@ -5,6 +5,7 @@ import type { SmileVerificationModalProps, ModalStatus, EmotionExpression } from
 import { EMOTION_COMMENTS, EMOTION_COLORS, EMOTION_LABELS } from "../../constants";
 import { pickRandom } from "../../utils/pickRandom";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
+import { useSoundEffects } from "../../hooks/useSoundEffects";
 import { EmotionDonutChart } from "../molecules/EmotionDonutChart";
 import { EmotionLegend } from "../molecules/EmotionLegend";
 import { ProgressBar } from "../atoms/ProgressBar";
@@ -25,16 +26,20 @@ export const SmileVerificationModal: React.FC<SmileVerificationModalProps> = ({
     emotion,
     expressions,
     isSmiling,
+    faceStatus,
     modelsLoaded,
     startWebcam,
     stopWebcam,
     cameraPermission,
   } = useFaceDetection();
 
+  const { play } = useSoundEffects();
+
   const [status, setStatus] = useState<ModalStatus>("idle");
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [funnyComment, setFunnyComment] = useState<string>("");
   const detectedRef = useRef<boolean>(false);
+  const noFaceWarnedRef = useRef<boolean>(false);
   const t1Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -59,12 +64,14 @@ export const SmileVerificationModal: React.FC<SmileVerificationModalProps> = ({
     }
     // Reset detection state every time modal opens
     detectedRef.current = false;
+    noFaceWarnedRef.current = false;
     if (modelsLoaded) {
       if (cameraPermission === "denied") {
         setStatus("denied");
       } else {
         startWebcam();
         setStatus("scanning");
+        play("cameraShutter");
       }
     }
     return () => {
@@ -84,6 +91,7 @@ export const SmileVerificationModal: React.FC<SmileVerificationModalProps> = ({
     if (!show || status !== "scanning") return;
     if (timeLeft <= 0) {
       setStatus("timeout");
+      play("timeoutSad");
       stopWebcam();
       const t = setTimeout(() => {
         onTimeoutRef.current?.();
@@ -93,6 +101,41 @@ export const SmileVerificationModal: React.FC<SmileVerificationModalProps> = ({
     const t = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [show, status, timeLeft, stopWebcam]);
+
+  // No-face-detected warning sound (plays once per "no face" spell)
+  useEffect(() => {
+    if (!show || status !== "scanning") return;
+    if (faceStatus === "No face detected" && !noFaceWarnedRef.current) {
+      noFaceWarnedRef.current = true;
+      play("noFaceWarning");
+    }
+    // Reset warn flag when face comes back
+    if (faceStatus !== "No face detected") {
+      noFaceWarnedRef.current = false;
+    }
+  }, [faceStatus, show, status, play]);
+
+  // Emotion-based sound effects (plays when dominant emotion changes)
+  const prevEmotionRef = useRef<string>("");
+  useEffect(() => {
+    if (!show || status !== "scanning" || !emotion || emotion === prevEmotionRef.current) return;
+    prevEmotionRef.current = emotion;
+
+    // Map emotion to sound
+    const emotionSoundMap: Record<string, string> = {
+      angry: "emotionAngry",
+      sad: "emotionSad",
+      fearful: "emotionFearful",
+      surprised: "emotionSurprised",
+      neutral: "emotionNeutral",
+      // happy doesn't have its own emotion sound — smileDetected handles it
+    };
+
+    const sound = emotionSoundMap[emotion];
+    if (sound) {
+      play(sound as Parameters<typeof play>[0]);
+    }
+  }, [emotion, show, status, play]);
 
   // Emotion list for visualization
   const emotionList: EmotionExpression[] = expressions
@@ -111,13 +154,17 @@ export const SmileVerificationModal: React.FC<SmileVerificationModalProps> = ({
     if (isSmiling && !detectedRef.current) {
       detectedRef.current = true;
       setStatus("detected");
-      t1Ref.current = setTimeout(() => setStatus("success"), 400);
+      play("smileDetected");
+      t1Ref.current = setTimeout(() => {
+        setStatus("success");
+        play("smileSuccess");
+      }, 400);
       t2Ref.current = setTimeout(() => {
         stopWebcam();
         onSmileDetectedRef.current?.();
       }, 1200);
     }
-  }, [isSmiling, show, status, stopWebcam]);
+  }, [isSmiling, show, status, stopWebcam, play]);
 
   // Funny comment based on dominant emotion
   useEffect(() => {
@@ -269,6 +316,16 @@ export const SmileVerificationModal: React.FC<SmileVerificationModalProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Warning: no face detected */}
+                {status === "scanning" && faceStatus === "No face detected" && (
+                  <div className="mt-4 max-w-[280px] text-center">
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-xl border border-amber-200 dark:border-amber-800/50 shadow-sm flex items-center justify-center gap-2">
+                      <span className="text-base">⚠️</span>
+                      Wajah belum terdeteksi, pastikan wajahmu menghadap kamera ya
+                    </p>
+                  </div>
+                )}
 
                 {funnyComment && status === "scanning" && (
                   <div className="mt-4 max-w-[280px] text-center">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { FloatingEmoji as FloatingEmojiType, Achievement } from "../src/types";
-import { ACHIEVEMENTS, LOADING_MESSAGES } from "../src/constants";
+import { ACHIEVEMENTS } from "../src/constants";
 import { useTheme } from "../src/hooks/useTheme";
 import { useAppStore } from "../src/store/useAppStore";
 import {
@@ -12,6 +12,7 @@ import {
   TextEditor,
   OutputPanel,
   SmileVerificationModal,
+  TranslateLoadingPopup,
   Footer,
 } from "../src/components/organisms";
 import { AchievementToast } from "../src/components/molecules/AchievementToast";
@@ -21,11 +22,12 @@ export default function HomePage() {
   const [inputTeks, setInputTeks] = useState<string>("");
   const [outputRaw, setOutputRaw] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [loadingMsgIndex, setLoadingMsgIndex] = useState<number>(0);
   const [apiError, setApiError] = useState<string>("");
   const [achieveToast, setAchieveToast] = useState<Achievement | null>(null);
+  const [showAchieveShimmer, setShowAchieveShimmer] = useState<boolean>(false);
   const [floaters, setFloaters] = useState<FloatingEmojiType[]>([]);
   const [showSmileModal, setShowSmileModal] = useState<boolean>(false);
+  const [showTranslateLoading, setShowTranslateLoading] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const pendingTranslateRef = useRef<boolean>(false);
 
@@ -34,16 +36,6 @@ export default function HomePage() {
 
   // Dark mode
   const { dark: darkMode, toggle: toggleDarkMode } = useTheme();
-
-  // Rotating loading messages
-  useEffect(() => {
-    if (!isLoading) return;
-    setLoadingMsgIndex(0);
-    const interval = setInterval(() => {
-      setLoadingMsgIndex((i) => (i + 1) % LOADING_MESSAGES.length);
-    }, 900);
-    return () => clearInterval(interval);
-  }, [isLoading]);
 
   // Floating emojis: trigger on translation
   useEffect(() => {
@@ -87,13 +79,20 @@ export default function HomePage() {
 
         // Achievement toast
         if (newlyUnlocked.length > 0) {
-          newlyUnlocked.forEach((achId) => {
-            const ach = ACHIEVEMENTS.find((a) => a.id === achId);
-            if (ach) {
-              setAchieveToast(ach);
-              setTimeout(() => setAchieveToast(null), 3600);
-            }
-          });
+          // Show shimmer first
+          setShowAchieveShimmer(true);
+
+          // After shimmer delay, show real toast
+          setTimeout(() => {
+            setShowAchieveShimmer(false);
+            newlyUnlocked.forEach((achId) => {
+              const ach = ACHIEVEMENTS.find((a) => a.id === achId);
+              if (ach) {
+                setAchieveToast(ach);
+                setTimeout(() => setAchieveToast(null), 3600);
+              }
+            });
+          }, 1200);
         }
       }
     } catch (err) {
@@ -110,13 +109,17 @@ export default function HomePage() {
     setShowSmileModal(true);
   };
 
-  // Smile detected → close modal & translate
+  // Smile detected → show fun loading popup, then translate
   const handleSmileDetected = () => {
     setShowSmileModal(false);
-    if (pendingTranslateRef.current) {
-      pendingTranslateRef.current = false;
-      doTranslate();
-    }
+    pendingTranslateRef.current = false;
+    setShowTranslateLoading(true);
+  };
+
+  // Loading popup done → proceed to translate
+  const handleTranslateLoadingDone = () => {
+    setShowTranslateLoading(false);
+    doTranslate();
   };
 
   // Timeout → close modal & cancel
@@ -177,7 +180,6 @@ export default function HomePage() {
             onChange={setInputTeks}
             onTranslate={handleTranslateClick}
             isLoading={isLoading}
-            loadingMsgIndex={loadingMsgIndex}
           />
 
           {/* RIGHT — Output panel */}
@@ -202,8 +204,14 @@ export default function HomePage() {
         onTimeout={handleSmileTimeout}
       />
 
-      {/* Achievement toast */}
-      <AchievementToast toast={achieveToast} />
+      {/* Translate loading popup (after smile detect, before translate) */}
+      <TranslateLoadingPopup
+        show={showTranslateLoading}
+        onDone={handleTranslateLoadingDone}
+      />
+
+      {/* Achievement shimmer + toast */}
+      <AchievementToast toast={achieveToast} shimmer={showAchieveShimmer} />
     </div>
   );
 }

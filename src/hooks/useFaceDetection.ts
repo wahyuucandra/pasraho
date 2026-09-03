@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import * as faceapi from "face-api.js";
 import type { CameraPermission, UseFaceDetectionReturn } from "../types";
 
-const HAPPY_THRESHOLD = 0.6;
+const HAPPY_THRESHOLD = 0.75;
 const CONFIDENCE_THRESHOLD = 0.4;
 const DETECTION_INTERVAL = 1000;
 
@@ -93,6 +93,12 @@ export function useFaceDetection(): UseFaceDetectionReturn {
   }, [modelsLoaded]);
 
   const startWebcam = useCallback(async () => {
+    // Reset detection state so previous smile doesn't carry over
+    setIsSmiling(false);
+    setEmotion("neutral");
+    setExpressions(null);
+    setFaceStatus("Mendeteksi wajah...");
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
