@@ -35,7 +35,11 @@ export const TextEditor: React.FC<TextEditorProps> = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder="Contoh: Pak, kenapa font-nya minta ganti lagi? Ini revisi ke-15 loh!"
           rows={5}
-          className="w-full resize-none rounded-xl border-2 border-gray-300 dark:border-gray-600 focus:border-emerald-400 dark:focus:border-emerald-500 bg-emerald-50/30 dark:bg-gray-800/60 px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-emerald-50/40 dark:focus:ring-emerald-500/20 transition-all"
+          className="w-full resize-none rounded-xl border-2 border-gray-300 dark:border-gray-600 focus:border-emerald-400 dark:focus:border-emerald-500 bg-emerald-50/30 dark:bg-gray-800/60 px-4 sm:px-5 py-3 sm:py-4 text-base text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-emerald-50/40 dark:focus:ring-emerald-500/20 transition-all font-sans"
+          style={{
+            fontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            fontSize: '16px',
+          }}
         />
         <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
           <SparklesIcon size={14} className="text-gray-400" />
