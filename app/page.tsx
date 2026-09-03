@@ -11,6 +11,7 @@ import {
   PasrahMeter,
   TextEditor,
   OutputPanel,
+  SmileGuideModal,
   SmileVerificationModal,
   TranslateLoadingPopup,
   Footer,
@@ -28,6 +29,7 @@ export default function HomePage() {
   const [floaters, setFloaters] = useState<FloatingEmojiType[]>([]);
   const [showSmileModal, setShowSmileModal] = useState<boolean>(false);
   const [showTranslateLoading, setShowTranslateLoading] = useState<boolean>(false);
+  const [showSmileGuide, setShowSmileGuide] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const pendingTranslateRef = useRef<boolean>(false);
 
@@ -103,7 +105,40 @@ export default function HomePage() {
     }
   };
 
-  // Click translate → open smile modal
+  // Show smile guide on page open (unless dismissed permanently)
+  const hasSeenGuideRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      hasSeenGuideRef.current = localStorage.getItem("pasraho-seen-guide") === "true";
+    }
+    // Show guide on page load if not dismissed
+    if (!hasSeenGuideRef.current) {
+      setShowSmileGuide(true);
+    }
+  }, []);
+
+  // Handle guide "don't show again" preference
+  const handleGuideDismiss = (dontShowAgain: boolean) => {
+    if (dontShowAgain) {
+      hasSeenGuideRef.current = true;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("pasraho-seen-guide", "true");
+      }
+    }
+  };
+
+  // Guide closed (X button or CTA) → mark preference & optionally continue to translate
+  const handleGuideClose = (dontShowAgain: boolean) => {
+    setShowSmileGuide(false);
+    handleGuideDismiss(dontShowAgain);
+  };
+
+  const handleGuideStart = (dontShowAgain: boolean) => {
+    setShowSmileGuide(false);
+    handleGuideDismiss(dontShowAgain);
+  };
+
+  // Click translate → show smile modal (guide already shown on page load)
   const handleTranslateClick = () => {
     if (!inputTeks.trim() || isLoading) return;
     pendingTranslateRef.current = true;
@@ -193,6 +228,13 @@ export default function HomePage() {
       </main>
 
       <Footer />
+
+      {/* Smile guide (every page open, unless dismissed) */}
+      <SmileGuideModal
+        show={showSmileGuide}
+        onStart={handleGuideStart}
+        onClose={handleGuideClose}
+      />
 
       {/* Smile verification modal */}
       <SmileVerificationModal

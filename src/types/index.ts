@@ -113,6 +113,12 @@ export interface SmileVerificationModalProps {
   onTimeout: () => void;
 }
 
+export interface SmileGuideModalProps {
+  show: boolean;
+  onStart: (dontShowAgain: boolean) => void;
+  onClose: (dontShowAgain: boolean) => void;
+}
+
 export interface ProgressBarProps {
   value: number;
   max: number;
