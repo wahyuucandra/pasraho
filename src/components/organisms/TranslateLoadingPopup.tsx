@@ -4,8 +4,6 @@ import React, { useEffect, useState } from "react";
 
 export interface TranslateLoadingPopupProps {
   show: boolean;
-  onDone: () => void;
-  duration?: number; // ms before auto-dismiss
 }
 
 const FUNNY_QUOTES = [
@@ -20,13 +18,12 @@ const FUNNY_QUOTES = [
 ];
 
 /**
- * Fun loading popup shown after smile detection, before translation starts.
+ * Fun loading popup shown during translation (API fetch).
  * Shows a bouncing logo with rotating funny quotes.
+ * Controlled entirely by parent via `show` prop — no auto-dismiss.
  */
 export const TranslateLoadingPopup: React.FC<TranslateLoadingPopupProps> = ({
   show,
-  onDone,
-  duration = 2000,
 }) => {
   const [quoteIndex, setQuoteIndex] = useState(0);
 
@@ -39,15 +36,6 @@ export const TranslateLoadingPopup: React.FC<TranslateLoadingPopupProps> = ({
     }, 700);
     return () => clearInterval(interval);
   }, [show]);
-
-  // Auto dismiss after duration
-  useEffect(() => {
-    if (!show) return;
-    const t = setTimeout(() => {
-      onDone();
-    }, duration);
-    return () => clearTimeout(t);
-  }, [show, duration, onDone]);
 
   if (!show) return null;
 

@@ -55,14 +55,8 @@ export const TextEditor: React.FC<TextEditorProps> = ({
         } ${isLoading ? "pointer-events-none opacity-80" : ""}`}
       >
         <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-3">
-          {isLoading ? (
-            <span className="spinner" />
-          ) : (
-            <>
-              <span className="text-lg sm:text-xl">✨</span>
-              <span>Terjemahkan Sekarang</span>
-            </>
-          )}
+          <span className="text-lg sm:text-xl">{isLoading ? "🤖" : "✨"}</span>
+          <span>{isLoading ? "Menerjemahkan..." : "Terjemahkan Sekarang"}</span>
         </span>
       </button>
     </div>

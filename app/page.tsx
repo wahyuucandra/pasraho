@@ -99,6 +99,7 @@ export default function HomePage() {
       setApiError(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setIsLoading(false);
+      setShowTranslateLoading(false);
     }
   };
 
@@ -109,16 +110,11 @@ export default function HomePage() {
     setShowSmileModal(true);
   };
 
-  // Smile detected → show fun loading popup, then translate
+  // Smile detected → open loading popup + langsung translate
   const handleSmileDetected = () => {
     setShowSmileModal(false);
     pendingTranslateRef.current = false;
     setShowTranslateLoading(true);
-  };
-
-  // Loading popup done → proceed to translate
-  const handleTranslateLoadingDone = () => {
-    setShowTranslateLoading(false);
     doTranslate();
   };
 
@@ -174,13 +170,15 @@ export default function HomePage() {
 
         {/* Side-by-side: Input (left) + Output (right) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* LEFT — Input panel */}
-          <TextEditor
-            value={inputTeks}
-            onChange={setInputTeks}
-            onTranslate={handleTranslateClick}
-            isLoading={isLoading}
-          />
+          {/* LEFT — Input panel (sticky di mobile biar gak ikut turun) */}
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <TextEditor
+              value={inputTeks}
+              onChange={setInputTeks}
+              onTranslate={handleTranslateClick}
+              isLoading={isLoading}
+            />
+          </div>
 
           {/* RIGHT — Output panel */}
           <OutputPanel rawText={outputRaw} />
@@ -204,11 +202,8 @@ export default function HomePage() {
         onTimeout={handleSmileTimeout}
       />
 
-      {/* Translate loading popup (after smile detect, before translate) */}
-      <TranslateLoadingPopup
-        show={showTranslateLoading}
-        onDone={handleTranslateLoadingDone}
-      />
+      {/* Translate loading popup (muncul selama proses translate) */}
+      <TranslateLoadingPopup show={showTranslateLoading} />
 
       {/* Achievement shimmer + toast */}
       <AchievementToast toast={achieveToast} shimmer={showAchieveShimmer} />
